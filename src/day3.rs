@@ -34,19 +34,20 @@ fn parse(input: &str) -> Vec<BatteryBank> {
         })
         .collect()
 }
+fn find_max_ind(bank: &[Joltage]) -> (usize, &Joltage) {
+    bank.iter()
+        .enumerate()
+        .max_by(|a, b| a.1.cmp(b.1).then(a.0.cmp(&b.0).reverse())) // prefer lower indices when there are multiple maxes
+        .expect("Empty battery bank")
+}
 
 #[aoc(day3, part1)]
 fn part1(input: &Vec<BatteryBank>) -> u64 {
     input
         .iter()
         .map(|bank| {
-            let (max_i, max) = &bank[..bank.len() - 1]
-                .iter()
-                .enumerate()
-                .rev() // Reverse the bank so that we return the first of max values
-                .max_by_key(|&(_, n)| n) // Max by key returns the last element when there are multiple maxes
-                .unwrap();
-            let other = bank[max_i + 1..].iter().max().unwrap();
+            let (max_i, max) = find_max_ind(&bank[..bank.len() - 1]);
+            let other = bank[max_i + 1..].into_iter().max().unwrap();
             (10 * max.value() + other.value()) as u64
         })
         .sum()
@@ -59,17 +60,13 @@ fn part2(input: &Vec<BatteryBank>) -> u64 {
         .map(|bank| {
             let mut digits = Vec::with_capacity(12);
             let mut start_index = 0;
-            for remain in (1..=12).rev() {
-                let (idx, max) = &bank[start_index..=bank.len() - remain]
-                    .iter()
-                    .enumerate()
-                    .max_by(|a, b| a.1.cmp(b.1).then(a.0.cmp(&b.0).reverse())) // prefer lower indices when there are multiple maxes
-                    .unwrap();
-                digits.push(max.value());
-                // returned index is relative to the start of the iterator
+            for n_remain in (1..=12).rev() {
+                let (idx, max) = find_max_ind(&bank[start_index..=bank.len() - n_remain]);
+                digits.push(max.value() as u64);
+                // returned index is relative to the start of the slice
                 start_index += idx + 1;
             }
-            digits.iter().fold(0, |acc, &n| acc * 10 + n as u64)
+            digits.iter().fold(0, |acc, &n| acc * 10 + n)
         })
         .sum()
 }
