@@ -5,7 +5,7 @@ struct Node {
     y: i64,
     z: i64,
 }
-type Input = (Vec<Node>, HashMap<(Node, Node), f64>);
+type Input = (Vec<Node>, Vec<(Node, Node, u64)>);
 #[aoc_generator(day8)]
 fn parse(input: &str) -> Input {
     let nodes = input
@@ -22,16 +22,20 @@ fn parse(input: &str) -> Input {
         })
         .collect::<Vec<_>>();
 
-    let map = nodes
+    let mut map = nodes
         .iter()
-        .flat_map(|&n| {
-            nodes.iter().filter(move |&&m| m != n).map(move |&m| {
-                let d =
-                    (((n.x - m.x).pow(2) + (n.y - m.y).pow(2) + (n.z - m.z).pow(2)) as f64).sqrt();
-                ((n, m), d)
+        .enumerate()
+        .flat_map(|(i, &n)| {
+            nodes.iter().skip(i + 1).map(move |&m| {
+                let x = n.x.abs_diff(m.x);
+                let y = n.y.abs_diff(m.y);
+                let z = n.z.abs_diff(m.z);
+                let d = x * x + y * y + z * z;
+                (n, m, d)
             })
         })
-        .collect::<HashMap<_, _>>();
+        .collect::<Vec<_>>();
+    map.sort_unstable_by_key(|(.., d)| *d);
     (nodes, map)
 }
 fn count_nodes_graph(
@@ -52,22 +56,18 @@ fn count_nodes_graph(
 #[aoc(day8, part1)]
 fn part1(input: &Input) -> usize {
     let (nodes, map) = input;
-    let mut map = map.clone();
     let l = if nodes.len() == 1000 { 1000 } else { 10 };
 
     // Node -> vec<Node>
     let mut connections = HashMap::<_, Vec<_>>::new();
 
-    for _ in 0..l {
-        let (a, b) = map.iter().min_by(|(_, a), (_, b)| a.total_cmp(b)).map(|(n, _)| *n).unwrap();
-        map.remove(&(a, b));
-        map.remove(&(b, a));
+    for &(a, b, _) in map.iter().take(l) {
         // Bi-directional
         connections.entry(a).or_default().push(b);
         connections.entry(b).or_default().push(a);
     }
 
-    let mut visited = HashSet::<Node>::new();
+    let mut visited = HashSet::new();
     let mut graph_sizes =
         nodes.iter().map(|n| count_nodes_graph(n, &connections, &mut visited)).collect::<Vec<_>>();
     graph_sizes.sort();
@@ -80,12 +80,11 @@ fn is_fully_connected(connections: &HashMap<Node, Vec<Node>>, nodes: &Vec<Node>)
 #[aoc(day8, part2)]
 fn part2(input: &Input) -> i64 {
     let (nodes, map) = input;
-    let mut map = map.clone();
     let mut connections = HashMap::<_, Vec<_>>::new();
+    let mut i = 0;
     let prev = loop {
-        let (a, b) = map.iter().min_by(|&(_, a), &(_, b)| a.total_cmp(b)).map(|(n, _)| *n).unwrap();
-        map.remove(&(a, b));
-        map.remove(&(b, a));
+        let (a, b, _) = map[i];
+        i += 1;
         // Bi-directional
         connections.entry(a).or_default().push(b);
         connections.entry(b).or_default().push(a);
