@@ -2,12 +2,12 @@ use std::borrow::Borrow;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct Index(usize);
+struct NodeIndex(usize);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Node {
     name: String,
-    connections: Vec<Index>,
+    connections: Vec<NodeIndex>,
 }
 impl<T: ToString> From<T> for Node {
     fn from(name: T) -> Self {
@@ -18,30 +18,30 @@ impl<T: ToString> From<T> for Node {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 struct Input {
     nodes: Vec<Node>,
-    names: HashMap<String, Index>,
+    names: HashMap<String, NodeIndex>,
 }
-impl std::ops::IndexMut<&Index> for Input {
-    fn index_mut(&mut self, &Index(index): Index) -> &mut Self::Output {
-        &mut self.nodes[index]
+impl<T: Borrow<NodeIndex>> std::ops::IndexMut<T> for Input {
+    fn index_mut(&mut self, index: T) -> &mut Self::Output {
+        &mut self.nodes[index.borrow().0]
     }
 }
-impl std::ops::Index<&Index> for Input {
+impl<T: Borrow<NodeIndex>> std::ops::Index<T> for Input {
     type Output = Node;
 
-    fn index(&self, &Index(index): &Index) -> &Self::Output {
-        &self.nodes[index]
+    fn index(&self, index: T) -> &Self::Output {
+        &self.nodes[index.borrow().0]
     }
 }
 
 impl Input {
-    fn get(&self, name: impl Borrow<str>) -> Option<&Index> {
+    fn get(&self, name: impl Borrow<str>) -> Option<&NodeIndex> {
         self.names.get(name.borrow())
     }
 
-    fn get_or_insert(&mut self, name: impl ToString) -> &Index {
+    fn get_or_insert(&mut self, name: impl ToString) -> &NodeIndex {
         self.names.entry(name.to_string()).or_insert_with(|| {
             self.nodes.push(name.into());
-            Index(self.nodes.len() - 1)
+            NodeIndex(self.nodes.len() - 1)
         })
     }
 }
@@ -50,12 +50,13 @@ impl Input {
 #[aoc_generator(day11)]
 fn parse(input: &str) -> Input {
     let mut ret = Input::default();
-    let mut connections_buf = Vec::new(); // Allocate once to avoid reallocations 
+    let mut connections_buf = Vec::<NodeIndex>::new(); // Allocate once to avoid reallocations 
     for line in input.lines() {
         let (name, connections) = line.split_once(": ").unwrap();
-        let new = ret.get_or_insert(name.trim());
         // ideally, i'd just extend directly into the connections field, but that doesn't work due to the mutable borrow on ret
-        connections_buf.extend(connections.split_whitespace().map(|name| ret.get_or_insert(name)));
+        connections_buf
+            .extend(connections.split_whitespace().map(|name| ret.get_or_insert(name).clone()));
+        let new = ret.get_or_insert(name.trim()).clone();
         ret[new].connections.extend(connections_buf.drain(..));
     }
     ret
@@ -63,9 +64,9 @@ fn parse(input: &str) -> Input {
 
 fn dfs_count<'a>(
     input: &'a Input,
-    start: &'a Index,
-    end: &'a Index,
-    exclude: Option<&'a Index>,
+    start: &'a NodeIndex,
+    end: &'a NodeIndex,
+    exclude: Option<&'a NodeIndex>,
 ) -> usize {
     let mut path = vec![start];
     let mut result: Vec<Option<usize>> = vec![None; input.nodes.len()];
