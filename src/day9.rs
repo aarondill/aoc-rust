@@ -1,7 +1,6 @@
 use geo::prelude::*;
 use geo::{Point, Polygon, Rect};
-
-use crate::util::IterCombinationsPairs;
+use itertools::Itertools;
 
 type Input = Vec<Point<u64>>;
 #[aoc_generator(day9)]
@@ -25,7 +24,7 @@ fn area_of_corners([a, b]: [&Point<u64>; 2]) -> u64 {
 
 #[aoc(day9, part1)]
 fn part1(input: &Input) -> u64 {
-    input.iter_combinations().map(area_of_corners).max().unwrap()
+    input.iter().array_combinations().map(area_of_corners).max().unwrap()
 }
 
 #[aoc(day9, part2)]
@@ -36,7 +35,8 @@ fn part2(input: &Input) -> u64 {
     let p = Polygon::new(input_f64.into(), vec![]);
     // Find each rectangle and check if it's inside the polygon
     input
-        .iter_combinations()
+        .iter()
+        .array_combinations()
         .filter(|[a, b]| {
             // hack to make Polygon::contains work
             let a = Point::new(a.x() as f64, a.y() as f64);

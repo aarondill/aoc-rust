@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::util::IterCombinationsPairs;
+use itertools::Itertools;
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 struct Node {
     x: i64,
@@ -25,7 +26,8 @@ fn parse(input: &str) -> Input {
         .collect::<Vec<_>>();
 
     let mut map = nodes
-        .iter_combinations()
+        .iter()
+        .array_combinations()
         .map(|[n, m]| [n.clone(), m.clone()]) // I don't want to deal with lifetimes
         .map(|[n, m]| {
             let d = n.x.abs_diff(m.x).pow(2) + n.y.abs_diff(m.y).pow(2) + n.z.abs_diff(m.z).pow(2);
