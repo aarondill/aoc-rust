@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -8,9 +9,9 @@ struct Node {
     name: String,
     connections: Vec<Index>,
 }
-impl Node {
-    fn new(name: impl Into<String>) -> Self {
-        Self { name: name.into(), connections: Vec::new() }
+impl<T: ToString> From<T> for Node {
+    fn from(name: T) -> Self {
+        Self { name: name.to_string(), connections: Vec::new() }
     }
 }
 
@@ -19,8 +20,8 @@ struct Input {
     nodes: Vec<Node>,
     names: HashMap<String, Index>,
 }
-impl std::ops::IndexMut<Index> for Input {
-    fn index_mut(&mut self, Index(index): Index) -> &mut Self::Output {
+impl std::ops::IndexMut<&Index> for Input {
+    fn index_mut(&mut self, &Index(index): Index) -> &mut Self::Output {
         &mut self.nodes[index]
     }
 }
@@ -31,26 +32,17 @@ impl std::ops::Index<&Index> for Input {
         &self.nodes[index]
     }
 }
-impl std::ops::Index<Index> for Input {
-    type Output = Node;
 
-    fn index(&self, Index(index): Index) -> &Self::Output {
-        &self.nodes[index]
-    }
-}
 impl Input {
-    fn get(&self, name: &str) -> Option<&Index> {
-        self.names.get(name)
+    fn get(&self, name: impl Borrow<str>) -> Option<&Index> {
+        self.names.get(name.borrow())
     }
 
-    fn get_or_insert(&mut self, name: &str) -> Index {
-        self.names
-            .entry(name.to_string())
-            .or_insert_with(|| {
-                self.nodes.push(Node::new(name));
-                Index(self.nodes.len() - 1)
-            })
-            .clone()
+    fn get_or_insert(&mut self, name: impl ToString) -> &Index {
+        self.names.entry(name.to_string()).or_insert_with(|| {
+            self.nodes.push(name.into());
+            Index(self.nodes.len() - 1)
+        })
     }
 }
 // --- END BOILERPLATE  ---
@@ -62,10 +54,8 @@ fn parse(input: &str) -> Input {
     for line in input.lines() {
         let (name, connections) = line.split_once(": ").unwrap();
         let new = ret.get_or_insert(name.trim());
-        connections_buf.extend(
-            // ideally, i'd just extend directly into the connections field, but that doesn't work due to the mutable borrow on ret
-            connections.split_whitespace().map(|name| ret.get_or_insert(name)),
-        );
+        // ideally, i'd just extend directly into the connections field, but that doesn't work due to the mutable borrow on ret
+        connections_buf.extend(connections.split_whitespace().map(|name| ret.get_or_insert(name)));
         ret[new].connections.extend(connections_buf.drain(..));
     }
     ret

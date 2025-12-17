@@ -10,10 +10,7 @@ fn parse(input: &str) -> Vec<BatteryBank> {
         .collect()
 }
 fn find_max_ind(bank: &[Joltage]) -> (usize, &Joltage) {
-    bank.iter()
-        .enumerate()
-        .max_by(|a, b| a.1.cmp(b.1).then(a.0.cmp(&b.0).reverse())) // prefer lower indices when there are multiple maxes
-        .expect("Empty battery bank")
+    bank.iter().enumerate().rev().max_by_key(|&(_, &j)| j).expect("Empty battery bank")
 }
 
 #[aoc(day3, part1)]

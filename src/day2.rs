@@ -1,40 +1,27 @@
+use itertools::Itertools;
+type Input = Vec<[usize; 2]>;
+
 #[aoc_generator(day2)]
-fn parse(input: &str) -> Vec<(usize, usize)> {
+fn parse(input: &str) -> Input {
     input
         .split(',')
         .filter(|s| !s.is_empty())
-        .map(|range| {
-            let mut range = range.split('-');
-            let start = range
-                .next()
-                .expect("range is missing start")
-                .parse::<usize>()
-                .expect("start is not a number");
-            let end = range
-                .next()
-                .expect("range is missing end")
-                .parse::<usize>()
-                .expect("end is not a number");
-            assert!(range.next().is_none(), "range has too many dashes");
-            assert!(start <= end, "start must be less than or equal to end");
-            (start, end)
-        })
+        .map(|range| range.split('-').next_array().unwrap().map(|s| s.parse().unwrap()))
         .collect()
 }
 
 #[aoc(day2, part1)]
-// Input is a single string of comma-separated ranges of numbers.
-fn part1(input: &Vec<(usize, usize)>) -> usize {
+fn part1(input: &Input) -> usize {
     fn is_invalid(num: usize) -> bool {
         let str = num.to_string();
         let (left, right) = str.split_at(str.len() / 2);
         left == right
     }
-    input.iter().flat_map(|range| (range.0..=range.1).filter(|&i| is_invalid(i))).sum()
+    input.iter().flat_map(|range| (range[0]..=range[1]).filter(|&i| is_invalid(i))).sum()
 }
 
 #[aoc(day2, part2)]
-fn part2(input: &Vec<(usize, usize)>) -> usize {
+fn part2(input: &Input) -> usize {
     fn is_invalid(num: usize) -> bool {
         let str = num.to_string();
         // Not the most efficient way (this is basically a palindrome problem), but it works
@@ -44,7 +31,7 @@ fn part2(input: &Vec<(usize, usize)>) -> usize {
             str == left.repeat(n)
         })
     }
-    input.iter().flat_map(|range| (range.0..=range.1).filter(|&i| is_invalid(i))).sum()
+    input.iter().flat_map(|range| (range[0]..=range[1]).filter(|&i| is_invalid(i))).sum()
 }
 
 #[cfg(test)]

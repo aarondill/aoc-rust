@@ -5,16 +5,12 @@ use itertools::Itertools;
 type Input = Vec<Point<u64>>;
 #[aoc_generator(day9)]
 fn parse(input: &str) -> Input {
-    let ret = input
-        .trim()
+    input
         .lines()
         .filter(|line| !line.is_empty())
         .map(|line| line.split_once(',').unwrap())
-        .map(|(x, y)| Point::<u64>::new(x.parse().unwrap(), y.parse().unwrap()))
-        .collect::<Vec<_>>();
-    // Check that the points are aligned
-    debug_assert!(ret.array_windows().all(|[p, q]| p.x() == q.x() || p.y() == q.y()));
-    ret
+        .map(|(x, y)| Point::new(x.parse().unwrap(), y.parse().unwrap()))
+        .collect::<Vec<_>>()
 }
 
 fn area_of_corners([a, b]: [&Point<u64>; 2]) -> u64 {

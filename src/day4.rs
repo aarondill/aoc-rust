@@ -1,9 +1,19 @@
 use grid::Grid;
+use itertools::Itertools;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Space {
     Empty,
     Paper,
+}
+impl From<char> for Space {
+    fn from(c: char) -> Self {
+        match c {
+            '.' => Space::Empty,
+            '@' => Space::Paper,
+            _ => panic!("invalid character"),
+        }
+    }
 }
 type Input = Grid<Space>;
 
@@ -12,31 +22,20 @@ fn parse(input: &str) -> Input {
     input
         .lines()
         .filter(|line| !line.is_empty())
-        .map(|line| {
-            line.chars()
-                .map(|c| match c {
-                    '.' => Space::Empty,
-                    '@' => Space::Paper,
-                    _ => panic!("invalid character"),
-                })
-                .collect()
-        })
+        .map(|line| line.chars().map_into().collect())
         .collect::<Vec<_>>()
         .into()
 }
 // Returns true if the given position is removable
 fn is_removeable(input: &Input, (y, x): (usize, usize)) -> bool {
-    let paper_adjacent = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-        .iter()
-        .map(|(dy, dx)| (y as isize + dy, x as isize + dx))
-        .filter_map(|pos| match pos {
-            (y, x) if x < 0 || y < 0 => None,
-            (y, x) if x >= input.cols() as isize || y >= input.rows() as isize => None,
-            (y, x) => Some((y as usize, x as usize)),
-        })
-        .filter(|&pos| input[pos] == Space::Paper)
-        .count();
-    paper_adjacent < 4
+    (y.saturating_sub(1)..=y.saturating_add(1))
+        .cartesian_product(x.saturating_sub(1)..=x.saturating_add(1))
+        .filter(|&p| p != (y, x))
+        .unique()
+        .filter_map(|(y, x)| input.get(y, x))
+        .filter(|&&pos| pos == Space::Paper)
+        .count()
+        < 4
 }
 // Returns an iterator over the coordinates of removable Papers
 fn removeable_iter(input: &Input) -> impl Iterator<Item = (usize, usize)> {

@@ -1,6 +1,7 @@
 use std::fmt;
 
 use grid::Grid;
+use itertools::Itertools;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 enum Space {
@@ -8,6 +9,16 @@ enum Space {
     Source,
     Splitter,
     Beam,
+}
+impl From<char> for Space {
+    fn from(c: char) -> Self {
+        match c {
+            '.' => Self::Empty,
+            '^' => Self::Splitter,
+            'S' => Self::Source,
+            _ => unreachable!("Invalid char"),
+        }
+    }
 }
 impl fmt::Debug for Space {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -23,25 +34,16 @@ type Input = (Grid<Space>, (usize, usize));
 
 #[aoc_generator(day7)]
 fn parse(input: &str) -> Input {
-    let mut cols = None;
     // flatten before collecting to avoid some allocations and reuse the same vector for the grid
-    let data = input
+    let grid: Grid<_> = input
         .lines()
         .filter(|l| !l.is_empty())
-        .flat_map(|l| {
-            assert_eq!(*cols.get_or_insert(l.len()), l.len());
-            l.chars().map(|c| match c {
-                '.' => Space::Empty,
-                '^' => Space::Splitter,
-                'S' => Space::Source,
-                _ => unreachable!("Invalid char"),
-            })
-        })
-        .collect::<Vec<_>>();
-    let grid = Grid::from_vec(data, cols.unwrap_or(0));
+        .map(|l| l.chars().map_into().collect())
+        .collect::<Vec<_>>()
+        .into();
     let p = grid
         .indexed_iter()
-        .find(|&(_, s)| matches!(s, Space::Source))
+        .find(|&(_, &s)| s == Space::Source)
         .map(|(p, _)| p)
         .expect("No source found");
     (grid, p)
@@ -86,7 +88,7 @@ fn part1(input: &Input) -> usize {
     }
     // Just find the number of unreached splitters
     grid.indexed_iter()
-        .filter(|&(_, s)| matches!(s, Space::Splitter))
+        .filter(|&(_, &s)| s == Space::Splitter)
         .map(|(p, _)| p)
         .map(|(r, c)| (r - 1, c))
         .filter(|(r, c)| grid.get(*r, *c) == Some(&Space::Beam))

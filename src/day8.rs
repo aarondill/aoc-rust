@@ -8,33 +8,30 @@ struct Node {
     y: i64,
     z: i64,
 }
+impl From<[i64; 3]> for Node {
+    fn from([x, y, z]: [i64; 3]) -> Self {
+        Self { x, y, z }
+    }
+}
+
 type Input = (Vec<Node>, Vec<(Node, Node, u64)>);
 #[aoc_generator(day8)]
 fn parse(input: &str) -> Input {
-    let nodes = input
+    let nodes: Vec<Node> = input
         .lines()
         .map(|line| {
-            let mut parts = line.split(',').map(|s| s.trim().parse().unwrap());
-            let n = Node {
-                x: parts.next().unwrap(),
-                y: parts.next().unwrap(),
-                z: parts.next().unwrap(),
-            };
-            assert_eq!(parts.next(), None);
-            n
+            line.split(',').map(|s| s.trim().parse().unwrap()).next_array::<3>().unwrap().into()
         })
-        .collect::<Vec<_>>();
-
-    let mut map = nodes
+        .collect();
+    let map = nodes
         .iter()
         .array_combinations()
-        .map(|[n, m]| [n.clone(), m.clone()]) // I don't want to deal with lifetimes
         .map(|[n, m]| {
             let d = n.x.abs_diff(m.x).pow(2) + n.y.abs_diff(m.y).pow(2) + n.z.abs_diff(m.z).pow(2);
-            (n, m, d)
+            (n.clone(), m.clone(), d)
         })
-        .collect::<Vec<_>>();
-    map.sort_unstable_by_key(|(.., d)| *d);
+        .sorted_unstable_by_key(|(.., d)| *d)
+        .collect();
     (nodes, map)
 }
 fn count_nodes_graph(
@@ -58,19 +55,23 @@ fn part1(input: &Input) -> usize {
     let l = if nodes.len() == 1000 { 1000 } else { 10 };
 
     // Node -> vec<Node>
-    let mut connections = HashMap::<_, Vec<_>>::new();
+    let mut connections = HashMap::new();
 
     for &(a, b, _) in map.iter().take(l) {
         // Bi-directional
-        connections.entry(a).or_default().push(b);
-        connections.entry(b).or_default().push(a);
+        connections.entry(a).or_insert_with(Vec::new).push(b);
+        connections.entry(b).or_insert_with(Vec::new).push(a);
     }
 
     let mut visited = HashSet::new();
-    let mut graph_sizes =
-        nodes.iter().map(|n| count_nodes_graph(n, &connections, &mut visited)).collect::<Vec<_>>();
-    graph_sizes.sort();
-    graph_sizes.iter().rev().filter(|&&n| n > 0).take(3).product()
+    nodes
+        .iter()
+        .map(|n| count_nodes_graph(n, &connections, &mut visited))
+        .sorted()
+        .rev()
+        .filter(|&n| n > 0)
+        .take(3)
+        .product()
 }
 fn is_fully_connected(connections: &HashMap<Node, Vec<Node>>, nodes: &Vec<Node>) -> bool {
     count_nodes_graph(&nodes[0], connections, &mut HashSet::new()) == nodes.len()

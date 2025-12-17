@@ -1,18 +1,21 @@
 use grid::Grid;
+use itertools::Itertools;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Operator {
     Add,
     Multiply,
 }
-impl Operator {
-    fn from_char(c: char) -> Self {
+impl From<char> for Operator {
+    fn from(c: char) -> Self {
         match c {
             '+' => Self::Add,
             '*' => Self::Multiply,
-            _ => unreachable!("invalid operator"),
+            _ => panic!("invalid operator"),
         }
     }
+}
 
+impl Operator {
     fn apply(&self, a: u64, b: u64) -> u64 {
         match self {
             Self::Add => a + b,
@@ -24,11 +27,11 @@ impl Operator {
 type Input = (Vec<String>, Vec<Operator>);
 #[aoc_generator(day6)]
 fn parse(input: &str) -> Input {
-    let lines: Vec<_> = input.lines().filter(|line| !line.is_empty()).collect();
+    let lines = input.lines().filter(|line| !line.is_empty()).collect::<Vec<_>>();
     let (operators, lines) = lines.split_last().unwrap();
-    let operators: Vec<_> =
-        operators.chars().filter(|c| !c.is_whitespace()).map(Operator::from_char).collect();
-    (lines.iter().map(|s| s.to_string()).collect(), operators)
+    let operators = operators.chars().filter(|c| !c.is_whitespace()).map_into().collect();
+    let lines = lines.iter().copied().map_into().collect();
+    (lines, operators)
 }
 
 #[aoc(day6, part1)]
