@@ -26,24 +26,57 @@ impl Direction {
     }
 }
 
+fn pair_ok(direction: Direction, a: u64, b: u64) -> bool {
+    let diff = a.abs_diff(b);
+    direction.check(a, b) && diff >= 1 && diff <= 3
+}
+enum ReportResult {
+    Ok,
+    NotOk(usize),
+}
+impl From<ReportResult> for bool {
+    fn from(r: ReportResult) -> Self {
+        match r {
+            ReportResult::Ok => true,
+            ReportResult::NotOk(_) => false,
+        }
+    }
+}
+fn report_ok(report: &[u64]) -> ReportResult {
+    let direction = Direction::from(report[0], report[1]);
+    for (i, &[a, b]) in report.array_windows().enumerate() {
+        if !pair_ok(direction, a, b) {
+            return ReportResult::NotOk(i);
+        }
+    }
+    ReportResult::Ok
+}
+
 #[aoc(day2, part1)]
 fn part1(input: &Input) -> u64 {
+    input.iter().filter(|r| report_ok(&r.0).into()).count() as u64
+}
+
+#[aoc(day2, part2)]
+fn part2(input: &Input) -> u64 {
     input
         .iter()
-        .filter(|r| {
-            let direction = Direction::from(r.0[0], r.0[1]);
-            r.0.array_windows().all(|&[a, b]| {
-                let diff = a.abs_diff(b);
-                direction.check(a, b) && diff >= 1 && diff <= 3
-            })
+        .filter(|r| match report_ok(&r.0) {
+            ReportResult::Ok => return true,
+            ReportResult::NotOk(i) => {
+                let mut array = r.0.clone();
+                for j in i.saturating_sub(1)..=i.saturating_add(1).min(array.len() - 1) {
+                    let removed = array.remove(j);
+                    if report_ok(&array).into() {
+                        return true;
+                    }
+                    array.insert(j, removed);
+                }
+                false
+            }
         })
         .count() as u64
 }
-
-// #[aoc(day2, part2)]
-// fn part2(input: &Input) -> u64 {
-//     todo!("part 2 is not implemented yet")
-// }
 
 #[cfg(test)]
 mod tests {
@@ -58,8 +91,13 @@ mod tests {
     fn test_part1() {
         assert_eq!(part1(&parse(INPUT)), 2);
     }
-    // #[test]
-    // fn test_part2() {
-    //     assert_eq!(part2(&parse(INPUT)), 4);
-    // }
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2(&parse(INPUT)), 4);
+    }
+    #[test]
+    fn test_part2_hard() {
+        let input = parse("71 69 70 71 72 75");
+        assert_eq!(part2(&input), 1);
+    }
 }
