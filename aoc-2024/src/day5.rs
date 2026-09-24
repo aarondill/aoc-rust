@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use itertools::Itertools;
+
 // .0 must come before .1 in the input
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 struct Sequence(u64, u64);
@@ -41,10 +43,36 @@ fn part1(input: &Input) -> u64 {
         .sum()
 }
 
-// #[aoc(day5, part2)]
-// fn part2(input: &Input) -> u64 {
-//     todo!("part 2 is not implemented yet")
-// }
+fn fix_order<'a>(order: &'a [u64], sequences: &[Sequence]) -> Vec<&'a u64> {
+    order
+        .into_iter()
+        .sorted_by(|&a, &b| {
+            sequences
+                .iter()
+                .find_map(|seq| {
+                    if seq.0 == *a && seq.1 == *b {
+                        Some(std::cmp::Ordering::Less)
+                    } else if seq.0 == *b && seq.1 == *a {
+                        Some(std::cmp::Ordering::Greater)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .collect()
+}
+
+#[aoc(day5, part2)]
+fn part2(input: &Input) -> u64 {
+    input
+        .orders
+        .iter()
+        .filter(|order| !is_correct(order, &input.sequences))
+        .map(|order| fix_order(order, &input.sequences))
+        .map(|order| order[order.len() / 2])
+        .sum()
+}
 
 #[cfg(test)]
 mod tests {
@@ -81,8 +109,8 @@ mod tests {
     fn test_part1() {
         assert_eq!(part1(&parse(INPUT)), 143);
     }
-    // #[test]
-    // fn test_part2() {
-    //     assert_eq!(part2(&parse(INPUT)), _);
-    // }
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2(&parse(INPUT)), 123);
+    }
 }
