@@ -70,10 +70,27 @@ fn part1(input: &Input) -> usize {
     horiz + vert + diag1 + diag2
 }
 
-// #[aoc(day4, part2)]
-// fn part2(input: &Input) -> u64 {
-//     todo!("part 2 is not implemented yet")
-// }
+#[aoc(day4, part2)]
+fn part2(input: &Input) -> usize {
+    // Search for A with an M and S on opposite diagonal sides
+    (1..input.rows() - 1)
+        .flat_map(|i| { 1..input.cols() - 1 }.map(move |j| (i, j)))
+        .filter(|&coord| input[coord] == 'A')
+        .filter(|(i, j)| {
+            let top_left = input[(i - 1, j - 1)];
+            let top_right = input[(i + 1, j - 1)];
+            let bot_left = input[(i - 1, j + 1)];
+            let bot_right = input[(i + 1, j + 1)];
+            let valid = ['M', 'S'];
+            valid.contains(&top_left) // each of the corners must be either M or S
+                && valid.contains(&top_right)
+                && valid.contains(&bot_left)
+                && valid.contains(&bot_right)
+                && (top_left == 'M') ^ (bot_right == 'M')
+                && (bot_left == 'M') ^ (top_right == 'M')
+        })
+        .count()
+}
 
 #[cfg(test)]
 mod tests {
@@ -92,8 +109,8 @@ MXMXAXMASX";
     fn test_part1() {
         assert_eq!(part1(&parse(INPUT)), 18);
     }
-    // #[test]
-    // fn test_part2() {
-    //     assert_eq!(part2(&parse(INPUT)), _);
-    // }
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2(&parse(INPUT)), 9);
+    }
 }
