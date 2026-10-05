@@ -21,7 +21,7 @@ impl Operation {
         match self {
             Operation::Add => a + b,
             Operation::Multiply => a * b,
-            Operation::Concatenate => (a.to_string() + &b.to_string()).parse().unwrap(),
+            Operation::Concatenate => a * 10_u64.pow(b.checked_ilog10().unwrap_or(0) + 1) + b,
         }
     }
 }
