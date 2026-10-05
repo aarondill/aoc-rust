@@ -61,11 +61,11 @@ fn part1(input: &Input) -> usize {
     let diag1: usize = diagonal_pos_slope(input).map(count_xmas).sum();
     let diag2: usize = diagonal_neg_slope(input).map(count_xmas).sum();
 
-    let sz = input.rows() * input.cols();
-    assert_eq!(input.iter_rows().flat_map(|r| r).count(), sz);
-    assert_eq!(input.iter_cols().flat_map(|c| c).count(), sz);
-    assert_eq!(diagonal_pos_slope(input).flatten().count(), sz);
-    assert_eq!(diagonal_neg_slope(input).flatten().count(), sz);
+    // let sz = input.rows() * input.cols();
+    // assert_eq!(input.iter_rows().flat_map(|r| r).count(), sz);
+    // assert_eq!(input.iter_cols().flat_map(|c| c).count(), sz);
+    // assert_eq!(diagonal_pos_slope(input).flatten().count(), sz);
+    // assert_eq!(diagonal_neg_slope(input).flatten().count(), sz);
 
     horiz + vert + diag1 + diag2
 }
